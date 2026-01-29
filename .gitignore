@@ -1,0 +1,7 @@
+**/build/
+**/.gradle/
+**/node_modules/
+**/*.jar
+.idea/
+.vscode/
+.DS_Store
