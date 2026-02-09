@@ -1,55 +1,44 @@
 plugins {
     id 'java'
-    // [중요] Camel 4.4와 가장 궁합이 좋은 Spring Boot 3.2.5로 고정합니다.
-    id 'org.springframework.boot' version '3.2.5'
-    id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.springframework.boot' version '3.2.4'
+    id 'io.spring.dependency-management' version '1.1.4'
 }
 
-group = 'com.eai'
-version = '0.0.1-SNAPSHOT'
-description = 'Demo project for Spring Boot'
+group = 'com.linkx'
+version = '1.0.0'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
-	}
+    sourceCompatibility = '17'
 }
 
 configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-    // 1. 웹 서버
+    // Spring Boot
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-    // 2. 유틸리티 & DB
+    // Database
+    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'com.h2database:h2'
+
+    // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    runtimeOnly 'org.postgresql:postgresql'
 
-    // 3. 헬스 체크 (에러 났던 부분 해결용)
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-
-    // 4. [EAI 핵심] Apache Camel 4.4.0 (LTS)
-    // Spring Boot 3.2.x 버전과 완벽하게 호환됩니다.
-    implementation 'org.apache.camel.springboot:camel-spring-boot-starter:4.4.0'
-    implementation 'org.springframework.boot:spring-boot-starter-artemis'
-    implementation 'org.apache.camel:camel-activemq:4.4.0'
-    implementation 'org.apache.camel:camel-jackson:4.4.0'
-    implementation 'io.netty:netty-all:4.1.101.Final' // 소켓 통신의 핵심
+    // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
-    implementation 'javax.annotation:javax.annotation-api:1.3.2'
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }

@@ -1,0 +1,106 @@
+/* ============================================
+   Link-X Design System — Kibana-inspired
+   ============================================ */
+
+:root {
+  /* Background layers */
+  --bg-page: #1a1b2e;
+  --bg-surface: #1d1e33;
+  --bg-card: #232440;
+  --bg-card-hover: #2a2b4a;
+  --bg-input: #191a2e;
+  --bg-header: #16172b;
+  --bg-sidebar: #141526;
+  --bg-overlay: rgba(10, 10, 20, 0.85);
+
+  /* Borders */
+  --border-default: #2d2e4a;
+  --border-light: #363758;
+  --border-focus: #36a2eb;
+
+  /* Accent palette — Kibana elastic */
+  --accent-blue: #36a2eb;
+  --accent-green: #00bfb3;
+  --accent-teal: #00bcd4;
+  --accent-purple: #9170f2;
+  --accent-pink: #ee78a0;
+  --accent-orange: #f5a623;
+  --accent-red: #ff6b6b;
+  --accent-yellow: #ffd666;
+
+  /* Accent glow */
+  --glow-blue: rgba(54, 162, 235, 0.12);
+  --glow-green: rgba(0, 191, 179, 0.12);
+  --glow-red: rgba(255, 107, 107, 0.12);
+
+  /* Text */
+  --text-primary: #e8eaed;
+  --text-secondary: #9ea2b0;
+  --text-muted: #5c5f73;
+  --text-inverse: #1a1b2e;
+
+  /* Status */
+  --status-success: #00bfb3;
+  --status-error: #ff6b6b;
+  --status-warning: #f5a623;
+  --status-info: #36a2eb;
+
+  /* Typography */
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.35);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
+  --shadow-glow-blue: 0 0 20px rgba(54,162,235,0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-page); }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(54,162,235,0.2); }
+  50% { box-shadow: 0 0 15px rgba(54,162,235,0.4); }
+}
