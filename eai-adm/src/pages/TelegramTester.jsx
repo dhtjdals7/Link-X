@@ -63,14 +63,20 @@ export default function TelegramTester() {
   // ── 전문 목록 로드 ──
   useEffect(() => {
     fetch(`${API_BASE}/list`)
-      .then((r) => r.json())
-      .then(setTelegrams)
-      .catch(() =>
+      .then((r) => {
+        if (!r.ok) throw new Error('서버 에러'); // 500 에러 등이 나면 바로 catch로 보냄
+        return r.json();
+      })
+      .then((data) => {
+        // 응답 데이터가 배열일 때만 저장, 아니면 빈 배열로 초기화
+        setTelegrams(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
         setTelegrams([
           { telegramId: "SAMPLE001", telegramName: "샘플 거래전문" },
           { telegramId: "SAMPLE002", telegramName: "계좌조회 전문" },
-        ])
-      );
+        ]);
+      });
   }, []);
 
   // ── 레이아웃 로드 ──
@@ -236,7 +242,7 @@ export default function TelegramTester() {
               style={styles.select}
             >
               <option value="">-- 전문 선택 --</option>
-              {telegrams.map((t) => (
+              {Array.isArray(telegrams) && telegrams.map((t) => (
                 <option key={t.telegramId} value={t.telegramId}>
                   [{t.telegramId}] {t.telegramName}
                 </option>
@@ -548,8 +554,8 @@ function FieldEditor({ layouts, fieldValues, onChange }) {
                     f.dataType === "NUMBER"
                       ? "#60a5fa"
                       : f.dataType === "FILLER"
-                      ? theme.textMuted
-                      : theme.text,
+                        ? theme.textMuted
+                        : theme.text,
                 }}
               >
                 {f.dataType}

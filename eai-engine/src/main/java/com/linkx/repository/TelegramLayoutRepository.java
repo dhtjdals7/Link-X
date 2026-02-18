@@ -23,4 +23,7 @@ public interface TelegramLayoutRepository extends JpaRepository<TelegramLayout, 
 
     /** 전문코드 존재 여부 */
     boolean existsByTelegramId(String telegramId);
+
+    List<TelegramLayout> findByTelegramIdOrderByFieldSeqAsc(String telegramId);
+
 }

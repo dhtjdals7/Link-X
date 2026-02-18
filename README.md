@@ -194,7 +194,7 @@
 
 ```
 link-x/
-├── backend/
+├── eai-engine/
 │   ├── build.gradle
 │   └── src/main/
 │       ├── java/com/linkx/
@@ -239,7 +239,7 @@ link-x/
 │           ├── application.yml
 │           └── data.sql                          # 샘플 전문 레이아웃
 │
-├── frontend/
+├── eai-adm/
 │   ├── package.json
 │   ├── vite.config.js
 │   ├── index.html

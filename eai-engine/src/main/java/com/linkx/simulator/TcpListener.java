@@ -140,7 +140,7 @@ public class TcpListener implements Runnable {
                     clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
 
             // 4. 레이아웃 조회 & 파싱
-            List<TelegramLayout> layouts = layoutRepository.findByTelegramIdOrderByFieldOrderAsc(telegramId);
+            List<TelegramLayout> layouts = layoutRepository.findByTelegramIdOrderByFieldSeqAsc(telegramId);
 
             if (layouts.isEmpty()) {
                 simLog.setStatus("NO_LAYOUT");
