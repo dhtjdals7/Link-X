@@ -43,10 +43,12 @@
 ### 3. 레이아웃 관리 — 전문 메타데이터 CRUD
 > 전문 필드 정의를 등록/수정/삭제
 
+- **+ 전문 추가** 버튼으로 새 전문코드 등록 (MSG_LEN 기본 필드 자동 생성)
 - 전문코드별 필드 목록 (번호, 섹션, 필드명, 길이, 타입, 정렬, 패딩)
 - 전문 전체 길이 / 헤더 / 바디 길이 자동 계산
-- 필드 추가/수정/삭제 인라인 편집
+- 필드 추가/삭제
 - 기존 EAI 시스템 `TB_TELEGRAM_LAYOUT` 테이블 호환 구조
+- API 연동 (백엔드 저장, 실패 시 로컬 fallback)
 
 ### 4. 송수신 이력 — 검색 및 필터링
 > 전문 송수신 기록 조회 및 분석
@@ -74,12 +76,12 @@
 - **Raw 전문 탭**: 필드별 색상 하이라이트 + 필드 범례
 - **Hex Dump 탭**: 16바이트 행 단위 헥스/아스키 덤프, 필드별 색상
 
-### 7. Simulator — TCP Mock 서버 ⭐ NEW
+### 7. Simulator — TCP Mock 서버 ⭐
 > 실제 계정계/대외기관 서버 없이 로컬에서 응답 서버 구동
 
 - **리스너 제어 탭**: TCP 포트 리스닝 시작/중지, 실시간 상태/통계 모니터링 (총 요청 수, 성공/에러)
 - **응답 규칙 탭**: 전문코드별 필드 응답 방식 정의 (FIXED / ECHO / ECHO_FROM / TIMESTAMP / SEQUENCE)
-- **수신 로그 탭**: 수신된 전문 원문과 응답 전문 실시간 확인, 에러 상세 표시
+- **수신/응답 로그 탭**: 수신된 전문 원문과 응답 전문 실시간 확인, 에러 상세 표시
 - 리스너 설정 CRUD (포트, 인코딩, 길이헤더 크기, 전문코드 오프셋, 응답 지연 등)
 - 레이아웃 기반 자동 규칙 생성 (에코백 기본 규칙 자동 셋업)
 - 2초 폴링 기반 실시간 상태 업데이트
@@ -174,7 +176,7 @@
 - **IBM MQ**: Request/Response Queue 기반 (확장 가능)
 - 새 프로토콜 추가 시 `ProtocolHandler` 구현만 하면 자동 라우팅
 
-### TCP Mock 서버 (Simulator) ⭐ NEW
+### TCP Mock 서버 (Simulator) ⭐
 - **멀티 리스너**: 포트별 독립 스레드로 복수 리스너 동시 운영 가능
 - **자동 전문 파싱**: 수신 전문을 레이아웃 기반으로 필드별 자동 분해
 - **응답 규칙 엔진 (`ResponseGenerator`)**: 필드별 응답값 생성 방식 정의
@@ -200,71 +202,70 @@ link-x/
 │       ├── java/com/linkx/
 │       │   ├── LinkXApplication.java
 │       │   ├── config/
-│       │   │   └── WebConfig.java              # CORS 설정
+│       │   │   └── WebConfig.java              # CORS 설정 (allowedOriginPatterns 사용)
 │       │   ├── controller/
-│       │   │   ├── TelegramController.java      # 전문 송수신 API
-│       │   │   ├── LayoutController.java        # 레이아웃 CRUD API
-│       │   │   ├── ProfileController.java       # 프로파일 API
-│       │   │   └── SimulatorController.java     # 시뮬레이터 API ⭐
+│       │   │   ├── TelegramController.java
+│       │   │   ├── LayoutController.java
+│       │   │   ├── ProfileController.java
+│       │   │   └── SimulatorController.java     # ⭐
 │       │   ├── domain/
-│       │   │   ├── TelegramLayout.java          # 전문 메타데이터 엔티티
-│       │   │   ├── TelegramHistory.java         # 송수신 이력 엔티티
-│       │   │   ├── ConnectionProfile.java       # 접속 프로파일 엔티티
-│       │   │   ├── SimulatorConfig.java         # 시뮬레이터 리스너 설정 ⭐
-│       │   │   ├── SimulatorLog.java            # 시뮬레이터 수신/응답 로그 ⭐
-│       │   │   └── ResponseRule.java            # 응답 규칙 엔티티 ⭐
+│       │   │   ├── TelegramLayout.java
+│       │   │   ├── TelegramHistory.java
+│       │   │   ├── ConnectionProfile.java
+│       │   │   ├── SimulatorConfig.java         # ⭐
+│       │   │   ├── SimulatorLog.java            # ⭐
+│       │   │   └── ResponseRule.java            # ⭐
 │       │   ├── repository/
 │       │   │   ├── TelegramLayoutRepository.java
 │       │   │   ├── TelegramHistoryRepository.java
 │       │   │   ├── ConnectionProfileRepository.java
-│       │   │   ├── SimulatorConfigRepository.java  # ⭐
-│       │   │   ├── SimulatorLogRepository.java     # ⭐
-│       │   │   └── ResponseRuleRepository.java     # ⭐
+│       │   │   ├── SimulatorConfigRepository.java
+│       │   │   ├── SimulatorLogRepository.java
+│       │   │   └── ResponseRuleRepository.java
 │       │   ├── service/
-│       │   │   └── TelegramService.java         # 핵심 비즈니스 로직
+│       │   │   └── TelegramService.java
 │       │   ├── simulator/
-│       │   │   ├── SimulatorService.java        # 리스너 시작/중지 관리 ⭐
-│       │   │   ├── TcpListener.java             # TCP 소켓 리스너 ⭐
-│       │   │   └── ResponseGenerator.java       # 응답 전문 생성 엔진 ⭐
+│       │   │   ├── SimulatorService.java        # ⭐
+│       │   │   ├── TcpListener.java             # ⭐
+│       │   │   └── ResponseGenerator.java       # ⭐
 │       │   ├── telegram/
-│       │   │   └── TelegramEngine.java          # ⭐ 전문 빌드/파싱/검증 엔진
+│       │   │   └── TelegramEngine.java
 │       │   └── protocol/
-│       │       ├── ProtocolHandler.java          # 프로토콜 인터페이스
-│       │       ├── ProtocolRouter.java           # 자동 라우팅
-│       │       ├── ConnectionConfig.java         # 접속 설정 DTO
-│       │       ├── TcpProtocolHandler.java       # TCP/IP 소켓
-│       │       ├── HttpProtocolHandler.java      # HTTP/REST
-│       │       └── MqProtocolHandler.java        # IBM MQ
+│       │       ├── ProtocolHandler.java
+│       │       ├── ProtocolRouter.java
+│       │       ├── ConnectionConfig.java
+│       │       ├── TcpProtocolHandler.java
+│       │       ├── HttpProtocolHandler.java
+│       │       └── MqProtocolHandler.java
 │       └── resources/
 │           ├── application.yml
-│           └── data.sql                          # 샘플 전문 레이아웃
+│           └── data.sql
 │
 ├── eai-adm/
 │   ├── package.json
 │   ├── vite.config.js
-│   ├── index.html
 │   └── src/
 │       ├── main.jsx
-│       ├── App.jsx                               # 라우터
+│       ├── App.jsx                               # /simulator 라우트 포함
 │       ├── styles/
-│       │   └── theme.css                         # Kibana-style 디자인 시스템
+│       │   └── theme.css
 │       ├── components/
-│       │   └── AppLayout.jsx                     # 사이드바 + 레이아웃 (Simulator 메뉴 포함)
+│       │   └── AppLayout.jsx                     # Simulator 사이드바 메뉴 포함
 │       ├── pages/
-│       │   ├── Dashboard.jsx                     # 대시보드
-│       │   ├── TelegramTester.jsx                # 전문 테스트
-│       │   ├── LayoutManager.jsx                 # 레이아웃 관리
-│       │   ├── HistoryPage.jsx                   # 송수신 이력
-│       │   ├── ProfileManager.jsx                # 접속 프로파일
-│       │   ├── TelegramDetail.jsx                # 전문 상세보기
-│       │   └── SimulatorPage.jsx                 # TCP Mock 서버 시뮬레이터 ⭐
+│       │   ├── Dashboard.jsx
+│       │   ├── TelegramTester.jsx
+│       │   ├── LayoutManager.jsx                 # 새 전문 추가 기능 + API 연동
+│       │   ├── HistoryPage.jsx
+│       │   ├── ProfileManager.jsx
+│       │   ├── TelegramDetail.jsx
+│       │   └── SimulatorPage.jsx                 # ⭐
 │       └── api/
-│           ├── telegramApi.js                    # Axios API 클라이언트
-│           └── simulatorApi.js                   # 시뮬레이터 API 클라이언트 ⭐
+│           ├── telegramApi.js
+│           └── simulatorApi.js                   # ⭐
 │
 ├── docs/
-│   ├── schema.sql                                # DDL
-│   └── architecture.mermaid                      # 아키텍처 다이어그램
+│   ├── schema.sql
+│   └── architecture.mermaid
 │
 ├── docker-compose.yml
 └── README.md
@@ -281,15 +282,15 @@ docker-compose up -d
 
 ### 2. Backend 실행
 ```bash
-cd backend
+cd eai-engine
 ./gradlew bootRun
-# 또는 개발 모드 (H2 인메모리 DB)
+# 개발 모드 (H2 인메모리 DB)
 ./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
 
 ### 3. Frontend 실행
 ```bash
-cd frontend
+cd eai-adm
 npm install
 npm run dev
 ```
@@ -303,6 +304,29 @@ npm run dev
 
 ---
 
+## ⚠️ 주요 설정 주의사항
+
+### CORS 설정 (Spring Boot 6 이상)
+`allowCredentials(true)` 사용 시 `allowedOrigins("*")` 금지. 반드시 `allowedOriginPatterns("*")` 사용:
+
+```java
+// WebConfig.java
+registry.addMapping("/api/**")
+    .allowedOriginPatterns("*")   // ← allowedOrigins("*") 사용 시 500 에러 발생
+    .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+    .allowedHeaders("*")
+    .allowCredentials(true);
+```
+
+### Simulator 사용 순서
+1. 레이아웃 관리에서 전문 등록
+2. Simulator → 리스너 제어 → 리스너 추가 (포트, 전문코드 오프셋 설정)
+3. Simulator → 응답 규칙 → 전문코드 선택 후 규칙 저장
+4. 리스너 시작
+5. 전문 테스트에서 해당 포트로 전송
+
+---
+
 ## 📡 API 엔드포인트
 
 ### 전문 송수신
@@ -310,11 +334,7 @@ npm run dev
 |--------|-----|------|
 | `GET` | `/api/telegram/list` | 전문코드 목록 조회 |
 | `GET` | `/api/telegram/layout/{id}` | 전문 레이아웃 조회 |
-| `GET` | `/api/telegram/layout/{id}/section` | 섹션별(헤더/바디) 조회 |
-| `POST` | `/api/telegram/preview` | 전문 조립 미리보기 |
-| `POST` | `/api/telegram/parse` | 수신 전문 파싱 |
 | `POST` | `/api/telegram/send` | 전문 송수신 실행 |
-| `POST` | `/api/telegram/test-connection` | 연결 테스트 |
 | `GET` | `/api/telegram/history` | 최근 송수신 이력 |
 
 ### 레이아웃 관리
@@ -322,40 +342,20 @@ npm run dev
 |--------|-----|------|
 | `GET` | `/api/layout` | 전체 레이아웃 조회 |
 | `POST` | `/api/layout` | 필드 추가 |
-| `POST` | `/api/layout/batch` | 일괄 등록 |
 | `PUT` | `/api/layout/{id}` | 필드 수정 |
 | `DELETE` | `/api/layout/{id}` | 필드 삭제 |
 
-### 접속 프로파일
-| Method | URL | 설명 |
-|--------|-----|------|
-| `GET` | `/api/profile` | 전체 프로파일 조회 |
-| `GET` | `/api/profile/active` | 활성 프로파일 조회 |
-| `GET` | `/api/profile/env/{env}` | 환경별 조회 |
-| `POST` | `/api/profile` | 프로파일 등록 |
-| `PUT` | `/api/profile/{id}` | 수정 |
-| `DELETE` | `/api/profile/{id}` | 삭제 |
-
-### 시뮬레이터 ⭐ NEW
+### 시뮬레이터 ⭐
 | Method | URL | 설명 |
 |--------|-----|------|
 | `POST` | `/api/simulator/listener/{configId}/start` | 리스너 시작 |
 | `POST` | `/api/simulator/listener/{configId}/stop` | 리스너 중지 |
-| `GET` | `/api/simulator/listener/status` | 전체 리스너 상태/통계 조회 |
-| `POST` | `/api/simulator/listener/stop-all` | 전체 리스너 중지 |
+| `GET` | `/api/simulator/listener/status` | 전체 리스너 상태 조회 |
 | `GET` | `/api/simulator/config` | 시뮬레이터 설정 목록 |
 | `POST` | `/api/simulator/config` | 설정 등록 |
-| `PUT` | `/api/simulator/config/{id}` | 설정 수정 |
-| `DELETE` | `/api/simulator/config/{id}` | 설정 삭제 |
-| `GET` | `/api/simulator/rule/{telegramId}` | 전문코드별 응답 규칙 조회 |
-| `GET` | `/api/simulator/rule/telegram-ids` | 규칙 설정된 전문코드 목록 |
-| `POST` | `/api/simulator/rule` | 응답 규칙 등록 |
+| `GET` | `/api/simulator/rule/{telegramId}` | 응답 규칙 조회 |
 | `POST` | `/api/simulator/rule/batch` | 응답 규칙 일괄 등록 |
-| `DELETE` | `/api/simulator/rule/{ruleId}` | 응답 규칙 삭제 |
-| `DELETE` | `/api/simulator/rule/telegram/{telegramId}` | 전문코드별 규칙 전체 삭제 |
-| `GET` | `/api/simulator/log` | 최근 수신 로그 조회 |
-| `GET` | `/api/simulator/log/config/{configId}` | 설정별 로그 조회 |
-| `GET` | `/api/simulator/log/telegram/{telegramId}` | 전문코드별 로그 조회 |
+| `GET` | `/api/simulator/log` | 수신 로그 조회 |
 
 ---
 
@@ -369,28 +369,6 @@ npm run dev
 | `TB_SIMULATOR_CONFIG` | 시뮬레이터 리스너 설정 ⭐ |
 | `TB_SIMULATOR_LOG` | 시뮬레이터 수신/응답 로그 ⭐ |
 | `TB_RESPONSE_RULE` | 시뮬레이터 응답 규칙 ⭐ |
-
----
-
-## 🎯 설계 포인트
-
-### 금융권 EAI 시스템 호환
-`TB_TELEGRAM_LAYOUT` 테이블 구조를 실제 금융권 EAI 메타데이터 테이블과 호환되도록 설계했습니다. 전문코드(telegramId) 기준 레이아웃 관리, HEADER/BODY 섹션 분리 방식은 실무에서 사용하는 구조 그대로입니다.
-
-### 한글 바이트 처리
-EUC-KR 인코딩 시 한글 2byte, UTF-8은 3byte로 처리합니다. 필드 길이 기준이 문자 수가 아닌 byte 단위인 것이 금융 전문의 표준 방식이고, TelegramEngine과 TcpListener에서 이를 정확하게 처리합니다.
-
-### 프로토콜 확장성
-Strategy 패턴으로 프로토콜 핸들러를 분리했습니다. 새 프로토콜(예: SFTP) 추가 시 `ProtocolHandler` 인터페이스 구현 후 `@Component`로 등록하면 `ProtocolRouter`가 자동 라우팅합니다.
-
-### TCP 길이 헤더 처리
-금융권 표준인 4byte/8byte 문자열 길이 헤더를 자동 생성/파싱합니다. 이 길이 헤더에 자기 자신의 길이를 포함할지 여부도 설정 가능합니다. 시뮬레이터도 동일한 방식으로 구현되어 실제 EAI 엔진과 바로 연결 테스트가 가능합니다.
-
-### 시뮬레이터 멀티 리스너
-`SimulatorService`가 `ConcurrentHashMap`으로 리스너를 관리하며, 각 리스너는 독립 데몬 스레드에서 동작합니다. 포트 중복 체크, 정상 종료(ServerSocket 닫기 + 클라이언트 스레드풀 shutdown)를 처리합니다.
-
-### 응답 규칙 엔진
-`ResponseGenerator`는 `TB_RESPONSE_RULE`의 규칙 목록을 읽어 필드별로 값을 생성합니다. 규칙이 없는 전문코드는 기본적으로 에코백 처리되며, SEQUENCE 타입은 인스턴스 내 `AtomicLong`으로 순번을 관리합니다.
 
 ---
 
@@ -411,7 +389,7 @@ Strategy 패턴으로 프로토콜 핸들러를 분리했습니다. 새 프로�
 
 ## 🧑‍💻 개발 배경
 
-금융권 EAI 시스템 개발 실무에서 매번 전문 테스트를 위해 간이 클라이언트를 만들거나 텔넷으로 바이트를 직접 보내는 비효율을 경험했습니다. 인터페이스 수가 130개가 넘는 프로젝트에서 이 작업이 반복되면서, 현장에서 바로 쓸 수 있는 전문 테스트 전용 도구의 필요성을 느껴 직접 개발하게 되었습니다.
+금융권 EAI 시스템 개발 실무에서 매번 전문 테스트를 위해 간이 클라이언트를 만들거나 텔넷으로 바이트를 직접 보내는 비효율을 경험했습니다. 인터페이스 수가 130개가 넘는 프로젝트에서 이 작업이 반복되면서, 현장에서 바로 쓸 수 있는 전문 테스트 전용 도구의 필요성을 느껴 직접 개발하게 됐습니다.
 
 특히 계정계나 대외기관 서버가 준비되지 않은 초기 개발 단계에서 **Simulator 기능**으로 Mock 서버를 직접 띄워 송수신 테스트를 완결할 수 있도록 설계했습니다.
 
