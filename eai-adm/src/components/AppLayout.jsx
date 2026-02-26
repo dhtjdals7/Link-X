@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { path: "/layout", icon: "☰", label: "레이아웃 관리" },
   { path: "/history", icon: "◷", label: "송수신 이력" },
   { path: "/profile", icon: "⊞", label: "접속 프로파일" },
+  { path: "/simulator", icon: "🖥", label: "Simulator" },  // ⭐ 추가
 ];
 
 export default function AppLayout({ children }) {

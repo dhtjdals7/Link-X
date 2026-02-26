@@ -6,6 +6,7 @@ import LayoutManager from "./pages/LayoutManager";
 import HistoryPage from "./pages/HistoryPage";
 import ProfileManager from "./pages/ProfileManager";
 import TelegramDetail from "./pages/TelegramDetail";
+import SimulatorPage from "./pages/SimulatorPage";  // ⭐ 추가
 import "./styles/theme.css";
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/history/:id" element={<TelegramDetail />} />
           <Route path="/profile" element={<ProfileManager />} />
+          <Route path="/simulator" element={<SimulatorPage />} />  {/* ⭐ 추가 */}
         </Routes>
       </AppLayout>
     </BrowserRouter>

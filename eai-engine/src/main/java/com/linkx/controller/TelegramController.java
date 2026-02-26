@@ -17,7 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/telegram")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class TelegramController {
 
     private final TelegramService telegramService;
