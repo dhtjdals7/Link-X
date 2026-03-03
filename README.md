@@ -2,7 +2,7 @@
 
 > **금융권 특화 전문(Fixed-length Telegram) 테스트 도구**
 
-금융 시스템 개발 현장에서 Postman으로는 불가능한 **고정길이 전문 송수신**, **멀티 프로토콜 테스트**, **EAI 연계 검증**, **TCP Mock 서버 시뮬레이션**을 하나의 웹 기반 도구로 해결합니다.
+금융 시스템 개발 현장에서 Postman으로는 불가능한 **고정길이 전문 송수신**, **멀티 프로토콜 테스트**, **EAI 연계 검증**, **TCP Mock 서버 시뮬레이션**, **배치 전문 테스트**를 하나의 웹 기반 도구로 해결합니다.
 
 ---
 
@@ -16,6 +16,7 @@
 - **프로토콜마다 도구가 다름** — TCP, HTTP, MQ를 각각 다른 도구로 테스트
 - **이력 관리가 안 됨** — 언제 어떤 전문을 보냈는지 추적 불가
 - **계정계 / 대외기관 서버 없이는 테스트 불가** — 개발 환경에서 Mock 서버가 없어 매번 의존 발생
+- **다건 전문 테스트가 불가** — 부하 테스트나 반복 검증을 위해 매번 수작업 반복
 
 ---
 
@@ -33,14 +34,25 @@
 ### 2. 전문 테스트 — 핵심 기능
 > Postman처럼 전문을 구성하고 송수신
 
-- 전문코드 선택 → DB에서 레이아웃 자동 로드
-- 필드별 값 입력 (헤더/바디 섹션 구분)
+- **단건 모드**: 전문코드 선택 → 필드 입력 → 전송 → 응답 파싱
+- **배치 모드**: 같은 전문을 N건 반복 송신 (순차/병렬) ⭐ NEW
 - 프로토콜 선택 (TCP/HTTP/MQ) + 접속정보 설정
 - 전문 미리보기 (빌드 결과 확인)
-- 전송 실행 → 응답 파싱 결과 즉시 확인
 - Raw 전문 필드별 색상 하이라이트
 
-### 3. 레이아웃 관리 — 전문 메타데이터 CRUD
+### 3. 배치 테스트 — 다건 전문 연속 송신 ⭐ NEW
+> 동일 전문을 N건 반복 송수신하고 결과를 수집·분석
+
+- **순차 실행**: 1건씩 차례로 전송, 건별 딜레이 설정 가능
+- **병렬 실행**: 멀티 스레드(최대 20) 동시 전송, 부하 테스트 용도
+- **건별 필드값 오버라이드**: 특정 필드를 건마다 다르게 설정 (순번 접미사 자동 생성)
+- **결과 통계 대시보드**: 성공/실패 건수, 평균·최소·최대 응답시간, 성공률 게이지
+- **응답시간 바 차트**: 건별 응답시간을 시각화하여 성능 편차 파악
+- **건별 상세 조회**: 요청/응답 원문 확인, 에러 메시지 표시
+- **배치 중단 기능**: 실행 중 취소 가능 (순차 실행 시)
+- 최대 1,000건 반복 지원
+
+### 4. 레이아웃 관리 — 전문 메타데이터 CRUD
 > 전문 필드 정의를 등록/수정/삭제
 
 - **+ 전문 추가** 버튼으로 새 전문코드 등록 (MSG_LEN 기본 필드 자동 생성)
@@ -50,7 +62,7 @@
 - 기존 EAI 시스템 `TB_TELEGRAM_LAYOUT` 테이블 호환 구조
 - API 연동 (백엔드 저장, 실패 시 로컬 fallback)
 
-### 4. 송수신 이력 — 검색 및 필터링
+### 5. 송수신 이력 — 검색 및 필터링
 > 전문 송수신 기록 조회 및 분석
 
 - 전문코드/전문명 검색
@@ -59,7 +71,7 @@
 - 목록 선택 시 우측 상세 패널 (요청/응답 원문)
 - 처리시간 느린 건 강조 표시
 
-### 5. 접속 프로파일 — 환경별 접속정보 관리
+### 6. 접속 프로파일 — 환경별 접속정보 관리
 > 개발/검증/운영 환경 프로파일 관리
 
 - 환경별 탭 필터 (DEV / STG / PRD)
@@ -67,7 +79,7 @@
 - 프로파일 추가/수정/삭제/활성화·비활성화
 - 운영 환경 위험 표시 (빨간 보더)
 
-### 6. 전문 상세보기 — 요청/응답 비교 분석
+### 7. 전문 상세보기 — 요청/응답 비교 분석
 > 이력에서 선택한 전문의 상세 분석
 
 - **요청/응답 비교 탭**: 필드별 나란히 비교, 값 차이(diff) 하이라이트
@@ -76,7 +88,7 @@
 - **Raw 전문 탭**: 필드별 색상 하이라이트 + 필드 범례
 - **Hex Dump 탭**: 16바이트 행 단위 헥스/아스키 덤프, 필드별 색상
 
-### 7. Simulator — TCP Mock 서버 ⭐
+### 8. Simulator — TCP Mock 서버 ⭐
 > 실제 계정계/대외기관 서버 없이 로컬에서 응답 서버 구동
 
 - **리스너 제어 탭**: TCP 포트 리스닝 시작/중지, 실시간 상태/통계 모니터링 (총 요청 수, 성공/에러)
@@ -93,17 +105,19 @@
 ```
 ┌─────────────┐     HTTP/JSON      ┌──────────────────────────────────┐
 │  React UI   │ ◄────────────────► │        Spring Boot Backend       │
-│  (7 Pages)  │                    │                                  │
+│  (8 Pages)  │                    │                                  │
 └─────────────┘                    │  ┌────────────────────────────┐  │
                                    │  │  TelegramController        │  │
                                    │  │  LayoutController          │  │
                                    │  │  ProfileController         │  │
                                    │  │  SimulatorController       │  │
+                                   │  │  BatchTestController ⭐    │  │
                                    │  └──────────┬─────────────────┘  │
                                    │             │                    │
                                    │  ┌──────────▼─────────────────┐  │
                                    │  │  TelegramService           │  │
                                    │  │  SimulatorService          │  │
+                                   │  │  BatchTestService ⭐       │  │
                                    │  └──────┬───────────┬─────────┘  │
                                    │         │           │            │
                                    │  ┌──────▼──────┐ ┌─▼──────────┐  │
@@ -133,16 +147,33 @@
 ┌──────────────────────────────────────────────────────────────────────┐
 │                     TCP Simulator (Mock Server)                      │
 │                                                                      │
-│  SimulatorService ──► TcpListener (포트별 독립 스레드)               │
+│  SimulatorService ──► TcpListener (포트별 독립 스레드)                │
 │       │                    │                                         │
 │       │              ┌─────▼──────────────────────────────────┐     │
-│       │              │  수신 → 길이헤더 파싱 → 전문코드 추출   │     │
-│       │              │  → 레이아웃 매칭 → 응답 생성 → 전송     │     │
+│       │              │  수신 → 길이헤더 파싱 → 전문코드 추출    │     │
+│       │              │  → 레이아웃 매칭 → 응답 생성 → 전송      │     │
 │       │              └─────────────────────────────────────────┘     │
 │       │                    │                                         │
-│  ResponseGenerator ◄───────┘  (FIXED/ECHO/TIMESTAMP/SEQUENCE)       │
+│  ResponseGenerator ◄───────┘  (FIXED/ECHO/TIMESTAMP/SEQUENCE)         │
 │       │                                                              │
-│  SimulatorLog ──► TB_SIMULATOR_LOG (수신/응답 이력 저장)             │
+│  SimulatorLog ──► TB_SIMULATOR_LOG (수신/응답 이력 저장)              │
+└──────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────┐
+│                     Batch Test Engine ⭐ NEW                         │
+│                                                                      │
+│  BatchTestController ──► BatchTestService                            │
+│                               │                                      │
+│                ┌──────────────┼──────────────┐                      │
+│                ▼              ▼              ▼                       │
+│          Sequential      Parallel      Progress                     │
+│          (1건씩 순차)   (ExecutorService)  Tracking                  │
+│                │              │         (ConcurrentHashMap)          │
+│                └──────┬───────┘                                      │
+│                       ▼                                              │
+│              TelegramService.sendTelegram()                          │
+│                       │                                              │
+│              결과 집계 (성공/실패, 응답시간 통계)                       │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -156,6 +187,7 @@
 | **Frontend** | React 18, Vite 5, React Router 6, Axios |
 | **Database** | PostgreSQL 15 (운영) / H2 (개발) |
 | **통신** | TCP/IP Socket, HTTP/REST, IBM MQ |
+| **동시성** | ExecutorService, ConcurrentHashMap, CompletableFuture |
 | **빌드** | Gradle 8.x, npm |
 | **인프라** | Docker Compose |
 
@@ -190,6 +222,15 @@
 - **응답 지연 시뮬레이션**: 실제 서버 처리 시간 모사 (responseDelayMs 설정)
 - **수신 로그**: 모든 수신/응답 원문을 `TB_SIMULATOR_LOG`에 저장
 
+### 배치 테스트 엔진 (`BatchTestService.java`) ⭐ NEW
+- **순차 실행 모드**: 1건씩 차례로 송신, 건별 딜레이(ms) 설정 가능
+- **병렬 실행 모드**: `ExecutorService` 기반 멀티 스레드 동시 송신 (최대 20 스레드)
+- **건별 필드값 오버라이드**: 기본값 + 건별 오버라이드 병합, 순번 접미사 자동 생성
+- **진행 상황 추적**: `ConcurrentHashMap` + `AtomicInteger` 기반 실시간 진행률 조회
+- **배치 중단**: 실행 중 취소 요청 시 현재 건까지 실행 후 중단
+- **결과 집계**: 성공/실패 건수, 평균·최소·최대 응답시간, 건별 상세 결과
+- **타임아웃 제어**: 건당 30초 타임아웃, 전체 실행 시간 추적
+
 ---
 
 ## 📂 프로젝트 구조
@@ -207,7 +248,11 @@ link-x/
 │       │   │   ├── TelegramController.java
 │       │   │   ├── LayoutController.java
 │       │   │   ├── ProfileController.java
-│       │   │   └── SimulatorController.java     # ⭐
+│       │   │   ├── SimulatorController.java     # ⭐
+│       │   │   └── BatchTestController.java     # ⭐ NEW
+│       │   ├── dto/
+│       │   │   ├── BatchTestRequest.java        # ⭐ NEW
+│       │   │   └── BatchTestResponse.java       # ⭐ NEW
 │       │   ├── domain/
 │       │   │   ├── TelegramLayout.java
 │       │   │   ├── TelegramHistory.java
@@ -223,7 +268,8 @@ link-x/
 │       │   │   ├── SimulatorLogRepository.java
 │       │   │   └── ResponseRuleRepository.java
 │       │   ├── service/
-│       │   │   └── TelegramService.java
+│       │   │   ├── TelegramService.java
+│       │   │   └── BatchTestService.java        # ⭐ NEW
 │       │   ├── simulator/
 │       │   │   ├── SimulatorService.java        # ⭐
 │       │   │   ├── TcpListener.java             # ⭐
@@ -250,10 +296,11 @@ link-x/
 │       ├── styles/
 │       │   └── theme.css
 │       ├── components/
-│       │   └── AppLayout.jsx                     # Simulator 사이드바 메뉴 포함
+│       │   ├── AppLayout.jsx                     # Simulator 사이드바 메뉴 포함
+│       │   └── BatchTestTab.jsx                  # ⭐ NEW
 │       ├── pages/
 │       │   ├── Dashboard.jsx
-│       │   ├── TelegramTester.jsx
+│       │   ├── TelegramTester.jsx                # 단건/배치 탭 전환 ⭐ UPDATED
 │       │   ├── LayoutManager.jsx                 # 새 전문 추가 기능 + API 연동
 │       │   ├── HistoryPage.jsx
 │       │   ├── ProfileManager.jsx
@@ -261,7 +308,8 @@ link-x/
 │       │   └── SimulatorPage.jsx                 # ⭐
 │       └── api/
 │           ├── telegramApi.js
-│           └── simulatorApi.js                   # ⭐
+│           ├── simulatorApi.js                   # ⭐
+│           └── batchApi.js                       # ⭐ NEW
 │
 ├── docs/
 │   ├── schema.sql
@@ -325,6 +373,16 @@ registry.addMapping("/api/**")
 4. 리스너 시작
 5. 전문 테스트에서 해당 포트로 전송
 
+### 배치 테스트 사용 순서 ⭐ NEW
+1. 레이아웃 관리에서 전문 등록
+2. 접속 프로파일에서 대상 서버 (또는 Simulator) 정보 등록
+3. 전문 테스트 → **배치 테스트** 탭 선택
+4. 전문코드 + 접속 프로파일 선택
+5. 기본 필드값 입력
+6. 실행 모드 선택 (순차/병렬) + 반복 횟수 설정
+7. (선택) 건별 필드값 오버라이드 설정
+8. 배치 실행 → 결과 확인
+
 ---
 
 ## 📡 API 엔드포인트
@@ -357,6 +415,13 @@ registry.addMapping("/api/**")
 | `POST` | `/api/simulator/rule/batch` | 응답 규칙 일괄 등록 |
 | `GET` | `/api/simulator/log` | 수신 로그 조회 |
 
+### 배치 테스트 ⭐ NEW
+| Method | URL | 설명 |
+|--------|-----|------|
+| `POST` | `/api/batch/execute` | 배치 테스트 실행 |
+| `GET` | `/api/batch/progress/{batchId}` | 진행 상황 조회 |
+| `POST` | `/api/batch/cancel/{batchId}` | 배치 중단 |
+
 ---
 
 ## 🗄️ DB 테이블
@@ -377,13 +442,15 @@ registry.addMapping("/api/**")
 - [ ] SFTP/FTP 파일 전송 테스트
 - [ ] SEED/ARIA 암복호화 모듈
 - [ ] 전문 템플릿 저장/불러오기
-- [ ] 배치 테스트 (다건 전문 연속 송신)
+- [x] ~~배치 테스트 (다건 전문 연속 송신)~~ ✅ 완료
 - [ ] 전문 diff 비교 (요청 vs 응답 변경점 추적)
 - [ ] 사용자 인증/권한 관리
 - [ ] 전문 레이아웃 Excel 일괄 업로드
 - [ ] 시뮬레이터 SSE 기반 실시간 로그 스트리밍 (현재 폴링 방식)
 - [ ] 시뮬레이터 응답 규칙 조건부 분기 (요청 필드값에 따라 다른 응답)
 - [ ] 시뮬레이터 장애 시나리오 (응답 지연, 연결 끊김, 에러 응답 비율 설정)
+- [ ] 배치 테스트 결과 CSV/Excel 내보내기
+- [ ] 배치 테스트 시나리오 저장/불러오기
 
 ---
 
@@ -392,6 +459,8 @@ registry.addMapping("/api/**")
 금융권 EAI 시스템 개발 실무에서 매번 전문 테스트를 위해 간이 클라이언트를 만들거나 텔넷으로 바이트를 직접 보내는 비효율을 경험했습니다. 인터페이스 수가 130개가 넘는 프로젝트에서 이 작업이 반복되면서, 현장에서 바로 쓸 수 있는 전문 테스트 전용 도구의 필요성을 느껴 직접 개발하게 됐습니다.
 
 특히 계정계나 대외기관 서버가 준비되지 않은 초기 개발 단계에서 **Simulator 기능**으로 Mock 서버를 직접 띄워 송수신 테스트를 완결할 수 있도록 설계했습니다.
+
+**배치 테스트 기능**은 단건 테스트만으로는 확인할 수 없는 성능 검증, 대량 데이터 처리 안정성 확인, 반복 테스트 자동화 니즈에서 출발했습니다. 실무에서 100건 이상의 전문을 수작업으로 보내야 하는 상황을 자동화하여 테스트 생산성을 크게 높일 수 있습니다.
 
 ---
 
