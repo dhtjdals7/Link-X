@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { executeBatch, cancelBatch } from '../api/batchApi';
-import { getTelegramList, getTelegramLayout } from '../api/telegramApi';
+import { getTelegramList, getLayout } from '../api/telegramApi';
 
 /**
  * BatchTestTab - TelegramTester 페이지의 배치 모드 탭
@@ -43,8 +43,9 @@ const BatchTestTab = ({ profiles = [] }) => {
   useEffect(() => {
     const loadTelegramList = async () => {
       try {
-        const list = await getTelegramList();
-        setTelegramList(list || []);
+        const res = await getTelegramList();
+        const list = res.data;
+        setTelegramList(Array.isArray(list) ? list : []);
       } catch (e) {
         console.error('전문 목록 로드 실패', e);
       }
@@ -61,11 +62,12 @@ const BatchTestTab = ({ profiles = [] }) => {
     }
     const loadLayout = async () => {
       try {
-        const layout = await getTelegramLayout(selectedTelegramId);
-        setLayoutFields(layout || []);
+        const res = await getLayout(selectedTelegramId);
+        const layout = Array.isArray(res.data) ? res.data : [];
+        setLayoutFields(layout);
         // 기본값 초기화
         const defaults = {};
-        (layout || []).forEach(f => { defaults[f.fieldName] = f.defaultValue || ''; });
+        layout.forEach(f => { defaults[f.fieldName] = f.defaultValue || ''; });
         setBaseFieldValues(defaults);
       } catch (e) {
         console.error('레이아웃 로드 실패', e);

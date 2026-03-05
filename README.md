@@ -32,23 +32,24 @@
 - 최근 처리 내역 실시간 피드
 
 ### 2. 전문 테스트 — 핵심 기능
-> Postman처럼 전문을 구성하고 송수신
+> Postman처럼 전문을 구성하고 송수신. 헤더의 **📡 단건 테스트 / 🔄 배치 테스트** 토글로 모드 전환
 
 - **단건 모드**: 전문코드 선택 → 필드 입력 → 전송 → 응답 파싱
-- **배치 모드**: 같은 전문을 N건 반복 송신 (순차/병렬) ⭐ NEW
+- **배치 모드**: 같은 전문을 N건 반복 송신 (순차/병렬), 접속 프로파일 기반 ⭐
 - 프로토콜 선택 (TCP/HTTP/MQ) + 접속정보 설정
 - 전문 미리보기 (빌드 결과 확인)
 - Raw 전문 필드별 색상 하이라이트
 
 ### 3. 배치 테스트 — 다건 전문 연속 송신 ⭐ NEW
-> 동일 전문을 N건 반복 송수신하고 결과를 수집·분석
+> 전문 테스트 페이지 상단의 **단건 테스트 / 배치 테스트** 토글로 모드 전환
 
 - **순차 실행**: 1건씩 차례로 전송, 건별 딜레이 설정 가능
 - **병렬 실행**: 멀티 스레드(최대 20) 동시 전송, 부하 테스트 용도
 - **건별 필드값 오버라이드**: 특정 필드를 건마다 다르게 설정 (순번 접미사 자동 생성)
+- **접속 프로파일 연동**: 등록된 프로파일에서 서버 정보를 가져와 `ConnectionConfig`로 자동 변환
 - **결과 통계 대시보드**: 성공/실패 건수, 평균·최소·최대 응답시간, 성공률 게이지
 - **응답시간 바 차트**: 건별 응답시간을 시각화하여 성능 편차 파악
-- **건별 상세 조회**: 요청/응답 원문 확인, 에러 메시지 표시
+- **건별 상세 조회**: 클릭 시 요청/응답 원문 확인, 에러 메시지 표시
 - **배치 중단 기능**: 실행 중 취소 가능 (순차 실행 시)
 - 최대 1,000건 반복 지원
 
@@ -223,6 +224,11 @@
 - **수신 로그**: 모든 수신/응답 원문을 `TB_SIMULATOR_LOG`에 저장
 
 ### 배치 테스트 엔진 (`BatchTestService.java`) ⭐ NEW
+- **접속 프로파일 연동**: `ConnectionProfileRepository`에서 프로파일 조회 → `ConnectionConfig.builder()` 패턴으로 변환
+  - TCP: `includeLengthHeader`, `lengthHeaderSize` 자동 매핑
+  - HTTP: `url` 자동 매핑
+  - `Integer`/`Boolean` 래퍼 타입 null 안전 처리 (primitive 변환 시 기본값 적용)
+- **`TelegramService.sendTelegram()` 직접 호출**: `sendTelegram(telegramId, fieldValues, connConfig, charset)` 시그니처 사용
 - **순차 실행 모드**: 1건씩 차례로 송신, 건별 딜레이(ms) 설정 가능
 - **병렬 실행 모드**: `ExecutorService` 기반 멀티 스레드 동시 송신 (최대 20 스레드)
 - **건별 필드값 오버라이드**: 기본값 + 건별 오버라이드 병합, 순번 접미사 자동 생성
@@ -297,10 +303,10 @@ link-x/
 │       │   └── theme.css
 │       ├── components/
 │       │   ├── AppLayout.jsx                     # Simulator 사이드바 메뉴 포함
-│       │   └── BatchTestTab.jsx                  # ⭐ NEW
+│       │   └── BatchTestTab.jsx                  # ⭐ NEW (telegramApi.js의 getLayout 사용)
 │       ├── pages/
 │       │   ├── Dashboard.jsx
-│       │   ├── TelegramTester.jsx                # 단건/배치 탭 전환 ⭐ UPDATED
+│       │   ├── TelegramTester.jsx                # ⭐ UPDATED — 단건/배치 모드 전환 토글, BatchTestTab import
 │       │   ├── LayoutManager.jsx                 # 새 전문 추가 기능 + API 연동
 │       │   ├── HistoryPage.jsx
 │       │   ├── ProfileManager.jsx
@@ -354,6 +360,28 @@ npm run dev
 
 ## ⚠️ 주요 설정 주의사항
 
+### H2 인메모리 DB 초기 데이터 (`data.sql`)
+dev 프로필(H2)에서는 서버 재시작 시 데이터가 초기화됩니다. `data.sql`에 접속 프로파일 초기 데이터를 반드시 추가해야 배치 테스트에서 프로파일 조회가 가능합니다:
+
+```sql
+-- 접속 프로파일 초기 데이터
+INSERT INTO TB_CONNECTION_PROFILE (PROFILE_NAME, ENV, PROTOCOL, HOST, PORT, TIMEOUT_MS, CHARSET, INCLUDE_LENGTH_HEADER, LENGTH_HEADER_SIZE, ACTIVE)
+VALUES ('로컬 Simulator', 'DEV', 'TCP', '127.0.0.1', 9090, 30000, 'EUC-KR', true, 4, true);
+
+INSERT INTO TB_CONNECTION_PROFILE (PROFILE_NAME, ENV, PROTOCOL, HOST, PORT, TIMEOUT_MS, CHARSET, INCLUDE_LENGTH_HEADER, LENGTH_HEADER_SIZE, ACTIVE)
+VALUES ('개발서버', 'DEV', 'TCP', '192.168.1.100', 9090, 30000, 'EUC-KR', true, 4, true);
+```
+
+### ConnectionConfig 생성 시 주의 (`@Builder` 패턴)
+`ConnectionConfig`는 `@Data @Builder`만 있고 `@NoArgsConstructor`가 없으므로, `new ConnectionConfig()`가 아닌 `ConnectionConfig.builder().build()` 패턴을 사용해야 합니다. `ConnectionProfile`의 `Boolean`/`Integer` 래퍼 타입 필드는 null 체크 후 primitive로 변환:
+
+```java
+ConnectionConfig.builder()
+    .port(profile.getPort() != null ? profile.getPort() : 0)
+    .includeLengthHeader(profile.getIncludeLengthHeader() != null ? profile.getIncludeLengthHeader() : true)
+    .build();
+```
+
 ### CORS 설정 (Spring Boot 6 이상)
 `allowCredentials(true)` 사용 시 `allowedOrigins("*")` 금지. 반드시 `allowedOriginPatterns("*")` 사용:
 
@@ -375,13 +403,16 @@ registry.addMapping("/api/**")
 
 ### 배치 테스트 사용 순서 ⭐ NEW
 1. 레이아웃 관리에서 전문 등록
-2. 접속 프로파일에서 대상 서버 (또는 Simulator) 정보 등록
-3. 전문 테스트 → **배치 테스트** 탭 선택
+2. 접속 프로파일에서 대상 서버 (또는 Simulator) 정보 등록 (`data.sql` 또는 접속 프로파일 화면)
+3. 전문 테스트 → 헤더의 **🔄 배치 테스트** 버튼 클릭
 4. 전문코드 + 접속 프로파일 선택
-5. 기본 필드값 입력
+5. 기본 필드값 입력 (BODY 영역)
 6. 실행 모드 선택 (순차/병렬) + 반복 횟수 설정
-7. (선택) 건별 필드값 오버라이드 설정
-8. 배치 실행 → 결과 확인
+7. (선택) 건별 필드값 오버라이드 — "건별 값 변경" 체크 → 필드 선택 → "자동 생성"
+8. 배치 실행 → 결과 통계 카드 + 건별 결과 + 응답시간 차트 확인
+9. 건별 결과 행 클릭 시 요청/응답 원문 상세 확인
+
+> **Simulator 연동 테스트**: Simulator 페이지에서 리스너 시작(9090 포트) + 응답 규칙 등록 후, 접속 프로파일 "로컬 Simulator"로 배치 실행하면 로컬 완결 테스트 가능
 
 ---
 
@@ -443,6 +474,7 @@ registry.addMapping("/api/**")
 - [ ] SEED/ARIA 암복호화 모듈
 - [ ] 전문 템플릿 저장/불러오기
 - [x] ~~배치 테스트 (다건 전문 연속 송신)~~ ✅ 완료
+- [x] ~~배치 테스트 프론트엔드-백엔드 통합~~ ✅ 완료 (TelegramTester 탭 전환, API 연동, 실행 검증)
 - [ ] 전문 diff 비교 (요청 vs 응답 변경점 추적)
 - [ ] 사용자 인증/권한 관리
 - [ ] 전문 레이아웃 Excel 일괄 업로드
@@ -451,6 +483,7 @@ registry.addMapping("/api/**")
 - [ ] 시뮬레이터 장애 시나리오 (응답 지연, 연결 끊김, 에러 응답 비율 설정)
 - [ ] 배치 테스트 결과 CSV/Excel 내보내기
 - [ ] 배치 테스트 시나리오 저장/불러오기
+- [ ] 배치 테스트 실시간 진행 상황 프로그레스 바 (현재 스피너만 표시)
 
 ---
 
@@ -461,6 +494,12 @@ registry.addMapping("/api/**")
 특히 계정계나 대외기관 서버가 준비되지 않은 초기 개발 단계에서 **Simulator 기능**으로 Mock 서버를 직접 띄워 송수신 테스트를 완결할 수 있도록 설계했습니다.
 
 **배치 테스트 기능**은 단건 테스트만으로는 확인할 수 없는 성능 검증, 대량 데이터 처리 안정성 확인, 반복 테스트 자동화 니즈에서 출발했습니다. 실무에서 100건 이상의 전문을 수작업으로 보내야 하는 상황을 자동화하여 테스트 생산성을 크게 높일 수 있습니다.
+
+### 배치 테스트 통합 시 해결한 이슈들
+- **프론트엔드 API 연동**: `BatchTestTab`이 `telegramApi.js`의 export 이름(`getLayout`)과 axios 응답 객체(`.data` 접근)에 맞추지 않아 발생한 런타임 에러 수정
+- **백엔드 메서드 시그니처 불일치**: `TelegramService.sendTelegram(telegramId, fieldValues, connConfig, charset)` 4개 파라미터에 맞게 `BatchTestService` 호출부 수정
+- **`ConnectionConfig` 생성 패턴**: `@Builder`만 있는 클래스에서 `new` 키워드 대신 `builder()` 패턴 사용, `Boolean`→`boolean` 래퍼 타입 변환 시 null 안전 처리
+- **H2 인메모리 DB 초기 데이터**: dev 프로필에서 서버 재시작 시 프로파일 데이터 유실 → `data.sql`에 INSERT 추가
 
 ---
 

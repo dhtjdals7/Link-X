@@ -83,3 +83,10 @@ VALUES ('INQ001', '잔액조회', 10, 'ACCT_TYPE', '계좌종류', 2, 'STRING', 
 
 INSERT INTO tb_telegram_layout (telegram_id, telegram_name, field_seq, field_name, field_name_kr, field_length, data_type, align, pad_char, default_value, required, description, section, active)
 VALUES ('INQ001', '잔액조회', 11, 'CURR_CD', '통화코드', 3, 'STRING', 'LEFT', ' ', 'KRW', false, '', 'BODY', true);
+
+-- 접속 프로파일 초기 데이터
+INSERT INTO TB_CONNECTION_PROFILE (PROFILE_NAME, ENV, PROTOCOL, HOST, PORT, TIMEOUT_MS, CHARSET, INCLUDE_LENGTH_HEADER, LENGTH_HEADER_SIZE, ACTIVE)
+VALUES ('로컬 Simulator', 'DEV', 'TCP', '127.0.0.1', 9090, 30000, 'EUC-KR', true, 4, true);
+
+INSERT INTO TB_CONNECTION_PROFILE (PROFILE_NAME, ENV, PROTOCOL, HOST, PORT, TIMEOUT_MS, CHARSET, INCLUDE_LENGTH_HEADER, LENGTH_HEADER_SIZE, ACTIVE)
+VALUES ('개발서버', 'DEV', 'TCP', '192.168.1.100', 9090, 30000, 'EUC-KR', true, 4, true);
