@@ -22,14 +22,19 @@
 
 ## 🖥️ 주요 화면
 
-### 1. Dashboard — 실시간 모니터링
-> 전문 송수신 현황을 한 눈에 파악
+### 1. Dashboard — 실시간 모니터링 ⭐ UPGRADED
+> SSE(Server-Sent Events) 기반 실시간 전문 수신 모니터링
 
-- 총 요청 수, 성공률, 평균 응답시간, 에러 건수 (KPI 카드)
-- 시간대별 요청량 바 차트
-- 프로토콜별 분포 도넛 차트
-- 응답시간 분포 히트맵
-- 최근 처리 내역 실시간 피드
+- **SSE 실시간 스트리밍**: Simulator 전문 수신 시 즉시 Dashboard에 푸시 (폴링 아님)
+- **Live TPS 차트**: 최근 60초 초당 처리량 바 차트 (실시간 갱신)
+- **응답시간 추이**: 최근 50건 응답시간 라인 차트 (SVG 그라디언트)
+- **KPI 카드 6종**: Total Requests, Success Rate, Current TPS, Avg Response, Errors, SSE Clients
+- **응답시간 분포 히트맵**: 0-50ms / 50-100ms / 100-200ms / 200-500ms / 500ms+ 구간별
+- **전문코드별 트래픽 분포**: 상위 5개 전문코드 비율 바
+- **Live Activity Feed**: 전문 수신 이벤트 실시간 피드 (슬라이드인 애니메이션)
+- **SSE 연결 상태 표시**: CONNECTED / DISCONNECTED 뱃지
+- **통계 리셋 기능**: Reset 버튼으로 모든 통계 초기화
+- **폴링 Fallback**: SSE 연결 전 REST API로 초기 데이터 로드
 
 ### 2. 전문 테스트 — 핵심 기능
 > Postman처럼 전문을 구성하고 송수신. 헤더의 **📡 단건 테스트 / 🔄 배치 테스트** 토글로 모드 전환
@@ -113,12 +118,14 @@
                                    │  │  ProfileController         │  │
                                    │  │  SimulatorController       │  │
                                    │  │  BatchTestController ⭐    │  │
+                                   │  │  MonitoringController ⭐   │  │
                                    │  └──────────┬─────────────────┘  │
                                    │             │                    │
                                    │  ┌──────────▼─────────────────┐  │
                                    │  │  TelegramService           │  │
                                    │  │  SimulatorService          │  │
                                    │  │  BatchTestService ⭐       │  │
+                                   │  │  SseEmitterManager ⭐      │  │
                                    │  └──────┬───────────┬─────────┘  │
                                    │         │           │            │
                                    │  ┌──────▼──────┐ ┌─▼──────────┐  │
@@ -176,6 +183,30 @@
 │                       │                                              │
 │              결과 집계 (성공/실패, 응답시간 통계)                       │
 └──────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────┐
+│                  Real-time Monitoring (SSE) ⭐ NEW                    │
+│                                                                      │
+│  TcpListener ─── LogCallback ──► SseEmitterManager                  │
+│                                       │                              │
+│                    ┌──────────────────┼──────────────────┐          │
+│                    ▼                  ▼                  ▼           │
+│              통계 집계          SSE 브로드캐스트    최근 로그 버퍼    │
+│         (TPS, 응답시간,     ("log" + "stats"     (최근 100건)       │
+│          에러율, 분포)       이벤트 푸시)                             │
+│                                       │                              │
+│  MonitoringController ◄───────────────┘                              │
+│    /api/monitor/stream (SSE)                                         │
+│    /api/monitor/stats  (REST fallback)                               │
+│    /api/monitor/logs   (초기 로드)                                    │
+│                                       │                              │
+│                                       ▼                              │
+│                              Dashboard.jsx (EventSource)             │
+│                               ├─ Live TPS 바 차트                    │
+│                               ├─ Response Time 라인 차트             │
+│                               ├─ KPI 카드 실시간 갱신                │
+│                               └─ Live Activity Feed                  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -189,6 +220,7 @@
 | **Database** | PostgreSQL 15 (운영) / H2 (개발) |
 | **통신** | TCP/IP Socket, HTTP/REST, IBM MQ |
 | **동시성** | ExecutorService, ConcurrentHashMap, CompletableFuture |
+| **실시간** | SSE (SseEmitter), EventSource API |
 | **빌드** | Gradle 8.x, npm |
 | **인프라** | Docker Compose |
 
@@ -224,6 +256,17 @@
 - **수신 로그**: 모든 수신/응답 원문을 `TB_SIMULATOR_LOG`에 저장
 
 ### 배치 테스트 엔진 (`BatchTestService.java`) ⭐ NEW
+
+### 실시간 모니터링 엔진 (`SseEmitterManager.java`) ⭐ NEW
+- **SSE 브로드캐스트**: `SseEmitter`로 연결된 모든 Dashboard 클라이언트에 이벤트 실시간 푸시
+- **TcpListener 연동**: `LogCallback` 인터페이스 구현 → 전문 수신 시 자동 호출
+- **이벤트 타입**: `init` (초기 스냅샷), `log` (개별 전문 로그), `stats` (갱신된 통계)
+- **TPS 슬라이딩 윈도우**: 초별 `ConcurrentHashMap` 기반, 최근 60초 TPS 히스토리
+- **응답시간 분포**: 5개 구간(0-50ms / 50-100ms / 100-200ms / 200-500ms / 500ms+) AtomicLong 카운터
+- **전문코드별/프로토콜별 분포**: ConcurrentHashMap 기반 실시간 집계
+- **최근 로그 버퍼**: ConcurrentLinkedDeque, 최신 100건 유지 (초기 로드용)
+- **연결 관리**: 타임아웃(5분) / 에러 / 완료 시 자동 정리, 죽은 연결 자동 제거
+- **통계 리셋**: 전체 카운터 + 윈도우 + 버퍼 초기화
 - **접속 프로파일 연동**: `ConnectionProfileRepository`에서 프로파일 조회 → `ConnectionConfig.builder()` 패턴으로 변환
   - TCP: `includeLengthHeader`, `lengthHeaderSize` 자동 매핑
   - HTTP: `url` 자동 매핑
@@ -255,7 +298,8 @@ link-x/
 │       │   │   ├── LayoutController.java
 │       │   │   ├── ProfileController.java
 │       │   │   ├── SimulatorController.java     # ⭐
-│       │   │   └── BatchTestController.java     # ⭐ NEW
+│       │   │   ├── BatchTestController.java     # ⭐ NEW
+│       │   │   └── MonitoringController.java    # ⭐ NEW — SSE 스트리밍 엔드포인트
 │       │   ├── dto/
 │       │   │   ├── BatchTestRequest.java        # ⭐ NEW
 │       │   │   └── BatchTestResponse.java       # ⭐ NEW
@@ -277,9 +321,10 @@ link-x/
 │       │   │   ├── TelegramService.java
 │       │   │   └── BatchTestService.java        # ⭐ NEW
 │       │   ├── simulator/
-│       │   │   ├── SimulatorService.java        # ⭐
+│       │   │   ├── SimulatorService.java        # ⭐ UPDATED — SSE 콜백 등록
 │       │   │   ├── TcpListener.java             # ⭐
-│       │   │   └── ResponseGenerator.java       # ⭐
+│       │   │   ├── ResponseGenerator.java       # ⭐
+│       │   │   └── SseEmitterManager.java       # ⭐ NEW — SSE 실시간 스트리밍
 │       │   ├── telegram/
 │       │   │   └── TelegramEngine.java
 │       │   └── protocol/
@@ -305,7 +350,7 @@ link-x/
 │       │   ├── AppLayout.jsx                     # Simulator 사이드바 메뉴 포함
 │       │   └── BatchTestTab.jsx                  # ⭐ NEW (telegramApi.js의 getLayout 사용)
 │       ├── pages/
-│       │   ├── Dashboard.jsx
+│       │   ├── Dashboard.jsx                     # ⭐ UPGRADED — SSE 실시간 모니터링
 │       │   ├── TelegramTester.jsx                # ⭐ UPDATED — 단건/배치 모드 전환 토글, BatchTestTab import
 │       │   ├── LayoutManager.jsx                 # 새 전문 추가 기능 + API 연동
 │       │   ├── HistoryPage.jsx
@@ -315,7 +360,8 @@ link-x/
 │       └── api/
 │           ├── telegramApi.js
 │           ├── simulatorApi.js                   # ⭐
-│           └── batchApi.js                       # ⭐ NEW
+│           ├── batchApi.js                       # ⭐ NEW
+│           └── monitoringApi.js                  # ⭐ NEW — SSE EventSource + REST
 │
 ├── docs/
 │   ├── schema.sql
@@ -453,6 +499,14 @@ registry.addMapping("/api/**")
 | `GET` | `/api/batch/progress/{batchId}` | 진행 상황 조회 |
 | `POST` | `/api/batch/cancel/{batchId}` | 배치 중단 |
 
+### 실시간 모니터링 ⭐ NEW
+| Method | URL | 설명 |
+|--------|-----|------|
+| `GET` | `/api/monitor/stream` | SSE 스트리밍 연결 (text/event-stream) |
+| `GET` | `/api/monitor/stats` | 현재 통계 스냅샷 (폴링 fallback) |
+| `GET` | `/api/monitor/logs` | 최근 로그 100건 (초기 로드) |
+| `POST` | `/api/monitor/reset` | 통계 리셋 |
+
 ---
 
 ## 🗄️ DB 테이블
@@ -475,12 +529,15 @@ registry.addMapping("/api/**")
 - [ ] 전문 템플릿 저장/불러오기
 - [x] ~~배치 테스트 (다건 전문 연속 송신)~~ ✅ 완료
 - [x] ~~배치 테스트 프론트엔드-백엔드 통합~~ ✅ 완료 (TelegramTester 탭 전환, API 연동, 실행 검증)
+- [x] ~~실시간 모니터링 대시보드 (SSE 기반)~~ ✅ 완료 (TPS 차트, 응답시간 추이, 라이브 피드)
+- [x] ~~시뮬레이터 SSE 기반 실시간 로그 스트리밍~~ ✅ 완료 (폴링 → SSE 푸시)
 - [ ] 전문 diff 비교 (요청 vs 응답 변경점 추적)
 - [ ] 사용자 인증/권한 관리
 - [ ] 전문 레이아웃 Excel 일괄 업로드
-- [ ] 시뮬레이터 SSE 기반 실시간 로그 스트리밍 (현재 폴링 방식)
 - [ ] 시뮬레이터 응답 규칙 조건부 분기 (요청 필드값에 따라 다른 응답)
 - [ ] 시뮬레이터 장애 시나리오 (응답 지연, 연결 끊김, 에러 응답 비율 설정)
+- [ ] 모니터링 대시보드 알림 (에러율 임계치 초과 시 알림 표시)
+- [ ] 모니터링 이력 저장 (통계 스냅샷 DB 저장 + 일별 추이 조회)
 - [ ] 배치 테스트 결과 CSV/Excel 내보내기
 - [ ] 배치 테스트 시나리오 저장/불러오기
 - [ ] 배치 테스트 실시간 진행 상황 프로그레스 바 (현재 스피너만 표시)
@@ -494,6 +551,8 @@ registry.addMapping("/api/**")
 특히 계정계나 대외기관 서버가 준비되지 않은 초기 개발 단계에서 **Simulator 기능**으로 Mock 서버를 직접 띄워 송수신 테스트를 완결할 수 있도록 설계했습니다.
 
 **배치 테스트 기능**은 단건 테스트만으로는 확인할 수 없는 성능 검증, 대량 데이터 처리 안정성 확인, 반복 테스트 자동화 니즈에서 출발했습니다. 실무에서 100건 이상의 전문을 수작업으로 보내야 하는 상황을 자동화하여 테스트 생산성을 크게 높일 수 있습니다.
+
+**실시간 모니터링 대시보드**는 배치 테스트나 부하 테스트 실행 중 Simulator에 들어오는 전문을 실시간으로 관찰하고, TPS·응답시간·에러율 추이를 즉시 파악할 수 있도록 SSE(Server-Sent Events) 기반으로 구현했습니다. 기존 폴링 방식 대비 지연 없는 실시간성과 서버 부하 감소를 달성했습니다.
 
 ### 배치 테스트 통합 시 해결한 이슈들
 - **프론트엔드 API 연동**: `BatchTestTab`이 `telegramApi.js`의 export 이름(`getLayout`)과 axios 응답 객체(`.data` 접근)에 맞추지 않아 발생한 런타임 에러 수정

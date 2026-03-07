@@ -31,6 +31,7 @@ public class SimulatorService {
     private final SimulatorLogRepository logRepository;
     private final TelegramLayoutRepository layoutRepository;
     private final ResponseGenerator responseGenerator;
+    private final SseEmitterManager sseEmitterManager;
 
     /** 실행 중인 리스너 관리 (configId → TcpListener) */
     private final ConcurrentHashMap<Long, TcpListener> activeListeners = new ConcurrentHashMap<>();
@@ -42,12 +43,14 @@ public class SimulatorService {
                             ResponseRuleRepository ruleRepository,
                             SimulatorLogRepository logRepository,
                             TelegramLayoutRepository layoutRepository,
-                            ResponseGenerator responseGenerator) {
+                            ResponseGenerator responseGenerator,
+                            SseEmitterManager sseEmitterManager) {
         this.configRepository = configRepository;
         this.ruleRepository = ruleRepository;
         this.logRepository = logRepository;
         this.layoutRepository = layoutRepository;
         this.responseGenerator = responseGenerator;
+        this.sseEmitterManager = sseEmitterManager;
     }
 
     // ==================== 리스너 제어 ====================
@@ -73,6 +76,7 @@ public class SimulatorService {
         }
 
         TcpListener listener = new TcpListener(config, layoutRepository, logRepository, responseGenerator);
+        listener.setLogCallback(sseEmitterManager); // SSE 실시간 푸시 연동
         Thread thread = new Thread(listener, "tcp-listener-" + config.getPort());
         thread.setDaemon(true);
         thread.start();
